@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Hologram Effect</title>
+  <title>Digital ID Watermark Sheen</title>
   <style>
     body {
       display: flex;
@@ -11,153 +11,151 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      background-color: #0d0f12;
-      color: #fff;
+      background-color: #f4f5f7;
       font-family: system-ui, -apple-system, sans-serif;
       margin: 0;
     }
 
-    /* Hologram Container */
-    .holo-wrapper {
+    /* ID Card Photo Container */
+    .id-photo-container {
       position: relative;
-      width: 280px;
-      cursor: pointer;
+      width: 240px;
+      height: 300px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
-    /* Base Logo Layer */
-    .holo-wrapper img.base-logo {
-      display: block;
+    /* Base Portrait Photo */
+    .id-photo-container img.user-portrait {
       width: 100%;
-      height: auto;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
-    /* Security Hologram Glare & Rainbow Layer */
-    .holo-glare-layer {
+    /* Holographic Crest / Watermark Overlay Layer */
+    .id-photo-container .holo-overlay {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       pointer-events: none;
-      opacity: 0.15; /* Base subtle sheen head-on */
-      transition: opacity 0.15s ease-out;
+      
+      /* Pure white color fill */
+      background-color: #ffffff;
+      
+      /* Default head-on visibility (subtle translucent seal) */
+      opacity: 0.45;
+      transition: opacity 0.1s ease-out;
 
-      /* Multi-pass holographic spectrum & specular bright spots */
-      background: 
-        linear-gradient(
-          var(--angle, 135deg),
-          rgba(255, 255, 255, 0) 0%,
-          rgba(255, 0, 128, 0.4) 20%,
-          rgba(0, 255, 255, 0.6) 40%,
-          rgba(255, 255, 255, 0.9) 50%, /* Bright metallic center flare */
-          rgba(255, 230, 0, 0.6) 60%,
-          rgba(128, 0, 255, 0.4) 80%,
-          rgba(255, 255, 255, 0) 100%
-        );
-
-      /* Clip hologram strictly inside the logo graphic */
+      /* Masks the white overlay strictly to the shape of holoimg.png */
       -webkit-mask-image: url('holoimg.png');
       mask-image: url('holoimg.png');
-      -webkit-mask-size: contain;
-      mask-size: contain;
+      -webkit-mask-size: cover;
+      mask-size: cover;
+      -webkit-mask-position: center;
+      mask-position: center;
       -webkit-mask-repeat: no-repeat;
       mask-repeat: no-repeat;
-      mix-blend-mode: color-dodge;
+      
+      /* Keeps detail visible over skin tones and clothing */
+      mix-blend-mode: overlay;
     }
 
     button {
-      margin-top: 25px;
-      padding: 12px 24px;
-      font-size: 15px;
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 14px;
       font-weight: 600;
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: #1c2128;
+      border-radius: 20px;
+      border: none;
+      background-color: #0066cc;
       color: #fff;
       cursor: pointer;
     }
 
     #debug-log {
-      margin-top: 12px;
+      margin-top: 10px;
       font-size: 12px;
-      color: #7d8590;
+      color: #666;
     }
   </style>
 </head>
 <body>
 
-  <div class="holo-wrapper" id="holoContainer">
-    <img src="holoimg.png" alt="Security Hologram" class="base-logo">
-    <div class="holo-glare-layer" id="holoGlare"></div>
+  <div class="id-photo-container" id="cardContainer">
+    <!-- Replace portrait.jpg with your base photo -->
+    <img src="portrait.jpg" alt="ID Portrait" class="user-portrait">
+    <!-- Overlay PNG (holoimg.png) containing the coat-of-arms pattern -->
+    <div class="holo-overlay" id="holoOverlay"></div>
   </div>
 
-  <button id="enableSensorsBtn">Enable Mobile Motion Sensors</button>
-  <div id="debug-log">Tip: Hover/Move mouse over logo (Desktop) or tap button (Mobile).</div>
+  <button id="enableSensorsBtn">Enable Tilt Effect</button>
+  <div id="debug-log">Move mouse (Desktop) or tap button to enable tilt (Mobile).</div>
 
   <script>
-    const glareLayer = document.getElementById('holoGlare');
-    const container = document.getElementById('holoContainer');
+    const overlay = document.getElementById('holoOverlay');
+    const container = document.getElementById('cardContainer');
     const debugLog = document.getElementById('debug-log');
     const enableBtn = document.getElementById('enableSensorsBtn');
 
-    // Updates hologram sheen position and opacity
-    function updateHologram(angleDegree, intensity) {
-      // Rotate the shimmer gradient direction
-      glareLayer.style.setProperty('--angle', `${angleDegree}deg`);
-
-      // Head-on = ~0.15 sheen | Steep angle = up to 0.95 bright metallic reflection
-      let opacity = 0.15 + (intensity * 0.8);
+    // Updates white reflection opacity based on viewing angle
+    function setTiltOpacity(tiltAmount) {
+      // Base resting opacity = 0.45 (head-on view)
+      // Max angle opacity = 0.95 (bright white reflection)
+      let opacity = 0.45 + (tiltAmount * 0.5);
       if (opacity > 0.95) opacity = 0.95;
-      glareLayer.style.opacity = opacity;
+      if (opacity < 0.45) opacity = 0.45;
+      
+      overlay.style.opacity = opacity;
     }
 
     // 1. Mobile Gyroscope Handler
     function handleOrientation(event) {
-      const beta = event.beta || 0;   // Tilt forwards/backwards (-180 to 180)
-      const gamma = event.gamma || 0; // Tilt left/right (-90 to 90)
+      const beta = event.beta || 0;   // Forward/Back tilt (-180 to 180)
+      const gamma = event.gamma || 0; // Left/Right tilt (-90 to 90)
 
-      // Calculate dynamic gradient angle based on 3D motion
-      const angle = Math.atan2(gamma, beta) * (180 / Math.PI) + 180;
-
-      // Distance from neutral holding angle (45deg pitch)
+      // Measure deviation from standard holding position (~45° pitch)
       const betaDiff = Math.abs(beta - 45);
       const gammaDiff = Math.abs(gamma);
-      const totalTilt = Math.sqrt(betaDiff * betaDiff + gammaDiff * gammaDiff);
-      
-      const intensity = Math.min(totalTilt / 50, 1);
 
-      updateHologram(angle, intensity);
-      debugLog.innerText = `Tilt Angle: ${Math.round(angle)}° | Opacity: ${glareLayer.style.opacity}`;
+      // Calculate combined angle magnitude
+      const totalTilt = Math.sqrt(betaDiff * betaDiff + gammaDiff * gammaDiff);
+      const normalizedTilt = Math.min(totalTilt / 40, 1);
+
+      setTiltOpacity(normalizedTilt);
+      debugLog.innerText = `Beta: ${Math.round(beta)}° | Gamma: ${Math.round(gamma)}° | Opacity: ${overlay.style.opacity}`;
     }
 
-    // 2. Desktop Mouse Movement Fallback
+    // 2. Desktop Mouse-hover Simulation
     container.addEventListener('mousemove', (e) => {
       const rect = container.getBoundingClientRect();
-      const x = e.clientX - rect.left - (rect.width / 2);
-      const y = e.clientY - rect.top - (rect.height / 2);
-
-      const angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
-      const distanceFromCenter = Math.sqrt(x * x + y * y);
+      const x = Math.abs(e.clientX - rect.left - (rect.width / 2));
+      const y = Math.abs(e.clientY - rect.top - (rect.height / 2));
+      
       const maxDistance = rect.width / 2;
-      const intensity = Math.min(distanceFromCenter / maxDistance, 1);
+      const distance = Math.sqrt(x * x + y * y);
+      const tiltRatio = Math.min(distance / maxDistance, 1);
 
-      updateHologram(angle, intensity);
+      setTiltOpacity(tiltRatio);
     });
 
     container.addEventListener('mouseleave', () => {
-      updateHologram(135, 0); // Reset to standard state
+      setTiltOpacity(0); // Reset to base 0.45 opacity
     });
 
-    // 3. Sensor Activation for iOS / Android
+    // 3. Sensor Permission Flow
     enableBtn.addEventListener('click', () => {
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
-          .then(state => {
-            if (state === 'granted') {
+          .then(permissionState => {
+            if (permissionState === 'granted') {
               window.addEventListener('deviceorientation', handleOrientation);
               enableBtn.style.display = 'none';
             } else {
-              debugLog.innerText = 'Sensor permission denied.';
+              debugLog.innerText = 'Permission denied for motion sensors.';
             }
           })
           .catch(err => debugLog.innerText = 'Error: ' + err.message);
@@ -165,7 +163,7 @@
         window.addEventListener('deviceorientation', handleOrientation);
         enableBtn.style.display = 'none';
       } else {
-        debugLog.innerText = 'Motion sensors not supported on this device.';
+        debugLog.innerText = 'Device orientation not supported on this browser.';
       }
     });
   </script>
