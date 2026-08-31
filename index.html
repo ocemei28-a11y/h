@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Holographic Image Effect</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #111;
+      margin: 0;
+    }
+
+    /* Hologram Container */
+    .holo-container {
+      position: relative;
+      display: inline-block;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    /* Base Image */
+    .holo-container img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* White Tint Overlay */
+    .holo-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      /* Base target color #DAE1E6 */
+      background-color: #DAE1E6; 
+      /* Uses overlay blending so image details remain visible under the sheen */
+      mix-blend-mode: color-dodge; 
+      pointer-events: none;
+      opacity: 0; 
+      transition: opacity 0.1s ease-out;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="holo-container" id="holoContainer">
+    <img src="holoimg.png" alt="Holographic Card">
+    <div class="holo-overlay" id="holoOverlay"></div>
+  </div>
+
+  <script>
+    const overlay = document.getElementById('holoOverlay');
+
+    function handleOrientation(event) {
+      // beta: front-to-back tilt (-180 to 180)
+      // gamma: left-to-right tilt (-90 to 90)
+      const beta = Math.abs(event.beta || 0);
+      const gamma = Math.abs(event.gamma || 0);
+
+      // Calculate combined tilt offset from flat position
+      // Assuming flat/head-on position is around beta: 45deg (holding phone) and gamma: 0deg
+      const betaOffset = Math.abs(beta - 45); 
+      const totalTilt = Math.sqrt(betaOffset * betaOffset + gamma * gamma);
+
+      // Map tilt (0deg to ~45deg angle) to opacity (0 to 0.85 white sheen)
+      let opacity = totalTilt / 45;
+      if (opacity > 0.85) opacity = 0.85; // Cap maximum highlight brightness
+      if (opacity < 0) opacity = 0;
+
+      overlay.style.opacity = opacity;
+    }
+
+    // Request orientation permission on iOS 13+ devices
+    function requestDeviceOrientation() {
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(permissionState => {
+            if (permissionState === 'granted') {
+              window.addEventListener('deviceorientation', handleOrientation);
+            }
+          })
+          .catch(console.error);
+      } else {
+        // Non-iOS or older devices
+        window.addEventListener('deviceorientation', handleOrientation);
+      }
+    }
+
+    // Trigger permission request on first user touch/click (required by browsers)
+    window.addEventListener('click', requestDeviceOrientation, { once: true });
+  </script>
+</body>
+</html>
