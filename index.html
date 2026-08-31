@@ -3,79 +3,82 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Holographic Image Effect</title>
+  <title>Logo Hologram Effect</title>
   <style>
     body {
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      background-color: #111;
+      background-color: #f4f4f4; /* Contrast background */
       margin: 0;
     }
 
-    /* Hologram Container */
-    .holo-container {
+    /* Container sized strictly to the logo */
+    .holo-logo-wrapper {
       position: relative;
       display: inline-block;
-      overflow: hidden;
-      border-radius: 12px;
     }
 
-    /* Base Image */
-    .holo-container img {
+    /* Base Image - Head-on color #DAE1E6 base */
+    .holo-logo-wrapper img.base-logo {
       display: block;
-      max-width: 100%;
+      max-width: 250px;
       height: auto;
     }
 
-    /* White Tint Overlay */
-    .holo-overlay {
+    /* White Glare Layer masked strictly to the PNG shape */
+    .holo-glare-layer {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      /* Base target color #DAE1E6 */
-      background-color: #DAE1E6; 
-      /* Uses overlay blending so image details remain visible under the sheen */
-      mix-blend-mode: color-dodge; 
+      background-color: #ffffff;
       pointer-events: none;
-      opacity: 0; 
+      opacity: 0; /* Fully transparent head-on */
       transition: opacity 0.1s ease-out;
+
+      /* Mask the white color overlay so it ONLY covers the visible pixels of holoimg.png */
+      -webkit-mask-image: url('holoimg.png');
+      mask-image: url('holoimg.png');
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
     }
   </style>
 </head>
 <body>
 
-  <div class="holo-container" id="holoContainer">
-    <img src="holoimg.png" alt="Holographic Card">
-    <div class="holo-overlay" id="holoOverlay"></div>
+  <div class="holo-logo-wrapper" id="logoWrapper">
+    <!-- Original image -->
+    <img src="holoimg.png" alt="Holographic Logo" class="base-logo">
+    <!-- Masked layer that turns the logo pure white on tilt -->
+    <div class="holo-glare-layer" id="holoGlare"></div>
   </div>
 
   <script>
-    const overlay = document.getElementById('holoOverlay');
+    const glareLayer = document.getElementById('holoGlare');
 
     function handleOrientation(event) {
-      // beta: front-to-back tilt (-180 to 180)
-      // gamma: left-to-right tilt (-90 to 90)
       const beta = Math.abs(event.beta || 0);
       const gamma = Math.abs(event.gamma || 0);
 
-      // Calculate combined tilt offset from flat position
-      // Assuming flat/head-on position is around beta: 45deg (holding phone) and gamma: 0deg
+      // Measure total angle shift from flat resting position (~45deg holding angle)
       const betaOffset = Math.abs(beta - 45); 
       const totalTilt = Math.sqrt(betaOffset * betaOffset + gamma * gamma);
 
-      // Map tilt (0deg to ~45deg angle) to opacity (0 to 0.85 white sheen)
-      let opacity = totalTilt / 45;
-      if (opacity > 0.85) opacity = 0.85; // Cap maximum highlight brightness
+      // Head-on = 0 opacity (shows original image)
+      // Steep angle = higher opacity (turns logo white)
+      let opacity = totalTilt / 40;
+      if (opacity > 0.9) opacity = 0.9; // Max white intensity
       if (opacity < 0) opacity = 0;
 
-      overlay.style.opacity = opacity;
+      glareLayer.style.opacity = opacity;
     }
 
-    // Request orientation permission on iOS 13+ devices
+    // Permission handler for mobile devices
     function requestDeviceOrientation() {
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
@@ -86,13 +89,12 @@
           })
           .catch(console.error);
       } else {
-        // Non-iOS or older devices
         window.addEventListener('deviceorientation', handleOrientation);
       }
     }
 
-    // Trigger permission request on first user touch/click (required by browsers)
     window.addEventListener('click', requestDeviceOrientation, { once: true });
+    window.addEventListener('touchstart', requestDeviceOrientation, { once: true });
   </script>
 </body>
 </html>
